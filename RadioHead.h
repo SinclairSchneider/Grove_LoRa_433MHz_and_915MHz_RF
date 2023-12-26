@@ -663,6 +663,7 @@
 #define RH_PLATFORM_NRF51            10
 #define RH_PLATFORM_ESP8266          11
 #define RH_PLATFORM_STM32F2          12
+#define RH_PLATFORM_ESP32            13
 
 ////////////////////////////////////////////////////
 // Select platform automatically, if possible
@@ -673,6 +674,8 @@
         #define RH_PLATFORM RH_PLATFORM_NRF51
     #elif defined(ESP8266)
         #define RH_PLATFORM RH_PLATFORM_ESP8266
+	#elif defined(ESP32)
+		#define RH_PLATFORM RH_PLATFORM_ESP32
     #elif defined(ARDUINO)
         #define RH_PLATFORM RH_PLATFORM_ARDUINO
     #elif defined(__MSP430G2452__) || defined(__MSP430G2553__)
@@ -719,6 +722,27 @@
     #include <SPI.h>
     #define RH_HAVE_HARDWARE_SPI
     #define RH_HAVE_SERIAL
+	
+#elif (RH_PLATFORM == RH_PLATFORM_ESP32)   // ESP32 processor on Arduino IDE
+	#include <Arduino.h>
+	#include <SPI.h>
+	#define RH_HAVE_HARDWARE_SPI
+	#define RH_HAVE_SERIAL
+	#define RH_MISSING_SPIUSINGINTERRUPT
+	// ESP32 has 2 user SPI buses: VSPI and HSPI. They are essentially identical, but use different pins.
+	// The usual, default bus VSPI (available as SPI object in Arduino) uses pins:
+	// SCLK:      18
+	// MISO:      19
+	// MOSI:      23
+	// SS:	       5
+	// The other HSPI bus uses pins
+	// SCLK:      14
+	// MISO:      12
+	// MOSI:      12
+	// SS:	       15
+	// By default RadioHead uses VSPI, but you can make it use HSPI by defining this:
+	//#define RH_ESP32_USE_HSPI
+
 #elif (RH_PLATFORM == RH_PLATFORM_MSP430) // LaunchPad specific
     #include "legacymsp430.h"
     #include "Energia.h"
@@ -829,6 +853,10 @@
     // See hardware/esp8266/2.0.0/cores/esp8266/Arduino.h
     #define ATOMIC_BLOCK_START { uint32_t __savedPS = xt_rsil(15);
     #define ATOMIC_BLOCK_END xt_wsr_ps(__savedPS);}
+#elif (RH_PLATFORM == RH_PLATFORM_ESP32)
+	// jPerotto see hardware/esp32/1.0.4/tools/sdk/include/esp32/xtensa/xruntime.h
+	#define ATOMIC_BLOCK_START uint32_t volatile register ilevel = XTOS_DISABLE_ALL_INTERRUPTS;
+	#define ATOMIC_BLOCK_END XTOS_RESTORE_INTLEVEL(ilevel);
 #else
     // TO BE DONE:
     #define ATOMIC_BLOCK_START
@@ -844,6 +872,9 @@
 #elif (RH_PLATFORM == RH_PLATFORM_ESP8266)
     // ESP8266 also hash it
     #define YIELD yield();
+#elif (RH_PLATFORM == RH_PLATFORM_ESP32)
+	// ESP32 also has it
+	#define YIELD yield();
 #else
     #define YIELD
 #endif
